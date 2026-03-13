@@ -38,3 +38,12 @@ export const config = {
     dir: process.env.LOG_DIR || './logs',
   },
 };
+
+// Log de debug para verificar configurações
+if (config.env === 'production') {
+  console.log('Redis config:', {
+    host: config.redis.host,
+    port: config.redis.port,
+    hasPassword: !!config.redis.password,
+  });
+}
