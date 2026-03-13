@@ -4,14 +4,13 @@ import { SessionManager } from '../whatsapp/SessionManager';
 import { MessageJob } from './messageQueue';
 import { logger } from '../utils/logger';
 import { config } from '../config';
-import IORedis from 'ioredis';
 
-const connection = new IORedis({
+const connectionOptions = {
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
   maxRetriesPerRequest: null,
-});
+};
 
 export class MessageProcessor {
   private worker: Worker;
@@ -26,7 +25,7 @@ export class MessageProcessor {
       'whatsapp-messages',
       async (job: Job<MessageJob>) => this.processMessage(job),
       {
-        connection,
+        connection: connectionOptions,
         concurrency: 5,
       }
     );

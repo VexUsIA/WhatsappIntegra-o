@@ -52,7 +52,7 @@ export async function createServer(
         },
       });
 
-      await messageQueue.add('send-message', {
+      await messageQueue.add('whatsapp-messages', {
         storeId: data.storeId,
         messageLogId: messageLog.id,
         recipientPhone: data.recipientPhone,

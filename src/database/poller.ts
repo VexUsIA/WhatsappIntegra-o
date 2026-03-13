@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { PrismaClient } from '@prisma/client';
-import { messageQueue } from './messageQueue';
+import { messageQueue } from '../queue/messageQueue';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 
@@ -113,7 +113,7 @@ export class DatabasePoller {
         },
       });
 
-      await messageQueue.add('send-message', {
+      await messageQueue.add('whatsapp-messages', {
         storeId: record.tenant_id,
         messageLogId: messageLog.id,
         recipientPhone: record.recipient,

@@ -1,14 +1,13 @@
 import { Queue, Worker, QueueEvents } from 'bullmq';
-import IORedis from 'ioredis';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
-const connection = new IORedis({
+const connectionOptions = {
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
   maxRetriesPerRequest: null,
-});
+};
 
 export interface MessageJob {
   storeId: string;
@@ -20,7 +19,7 @@ export interface MessageJob {
 }
 
 export const messageQueue = new Queue<MessageJob>('whatsapp-messages', {
-  connection,
+  connection: connectionOptions,
   defaultJobOptions: {
     attempts: config.retry.maxAttempts,
     backoff: {
@@ -32,7 +31,7 @@ export const messageQueue = new Queue<MessageJob>('whatsapp-messages', {
   },
 });
 
-export const queueEvents = new QueueEvents('whatsapp-messages', { connection });
+export const queueEvents = new QueueEvents('whatsapp-messages', { connection: connectionOptions });
 
 queueEvents.on('completed', ({ jobId }) => {
   logger.info(`Job ${jobId} completado com sucesso`);
