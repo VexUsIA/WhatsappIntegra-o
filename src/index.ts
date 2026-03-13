@@ -12,6 +12,10 @@ async function main() {
   try {
     logger.info('Iniciando serviço de integração SCOM-WhatsApp');
 
+    // Testar conexão com banco
+    await prisma.$connect();
+    logger.info('Conexão com PostgreSQL estabelecida');
+
     const sessionManager = new SessionManager(prisma);
 
     sessionManager.on('qr', (connectionId, qrCode) => {
@@ -26,17 +30,26 @@ async function main() {
       logger.warn(`Conexão ${connectionId} desconectada: ${reason}`);
     });
 
-    const activeConnections = await prisma.whatsAppConnection.findMany({
-      where: { isActive: true },
-      include: { store: true },
-    });
+    // Inicializar conexões WhatsApp (não bloquear se falhar)
+    try {
+      const activeConnections = await prisma.whatsAppConnection.findMany({
+        where: { isActive: true },
+        include: { store: true },
+      });
 
-    logger.info(`Inicializando ${activeConnections.length} conexões ativas`);
+      logger.info(`Encontradas ${activeConnections.length} conexões ativas`);
 
-    for (const connection of activeConnections) {
-      if (connection.store.isActive) {
-        await sessionManager.initializeConnection(connection.id);
+      for (const connection of activeConnections) {
+        if (connection.store.isActive) {
+          try {
+            await sessionManager.initializeConnection(connection.id);
+          } catch (error) {
+            logger.error(`Erro ao inicializar conexão ${connection.id}`, error);
+          }
+        }
       }
+    } catch (error) {
+      logger.warn('Nenhuma conexão WhatsApp encontrada ou erro ao buscar', error);
     }
 
     const messageProcessor = new MessageProcessor(prisma, sessionManager);
@@ -48,7 +61,7 @@ async function main() {
     await server.listen({ port: config.port, host: '0.0.0.0' });
 
     logger.info(`API REST rodando na porta ${config.port}`);
-    logger.info(`Painel web disponível em http://localhost:${config.port}`);
+    logger.info(`Health check disponível em http://localhost:${config.port}/health`);
     logger.info('Serviço iniciado com sucesso');
 
     const shutdown = async () => {
