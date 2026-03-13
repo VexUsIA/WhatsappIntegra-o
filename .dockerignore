@@ -1,0 +1,20 @@
+node_modules
+npm-debug.log
+.env
+.env.local
+.env.*.local
+dist
+logs
+*.log
+.git
+.gitignore
+README.md
+.DS_Store
+Thumbs.db
+auth_states
+.vscode
+.idea
+Simulador ERP
+*.md
+!package*.json
+!prisma
