@@ -1,8 +1,9 @@
 # Use Node.js 20 LTS
 FROM node:20-alpine
 
-# Instalar dependências do sistema
+# Instalar dependências do sistema (incluindo git)
 RUN apk add --no-cache \
+    git \
     python3 \
     make \
     g++ \
@@ -18,8 +19,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Instalar dependências (usar npm install em vez de npm ci)
-RUN npm install --production && \
+# Instalar dependências
+RUN npm install --omit=dev && \
     npm cache clean --force
 
 # Copiar código fonte
@@ -28,8 +29,10 @@ COPY . .
 # Gerar Prisma Client
 RUN npx prisma generate
 
-# Build TypeScript
-RUN npm run build
+# Build TypeScript (precisa das devDependencies)
+RUN npm install && \
+    npm run build && \
+    npm prune --omit=dev
 
 # Expor porta
 EXPOSE 3000
