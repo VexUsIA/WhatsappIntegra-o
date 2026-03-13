@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id          String   @id @default(uuid())
+  storeCode   String   @unique
+  storeName   String
+  email       String   @unique
+  password    String   // Hash bcrypt
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  connections WhatsAppConnection[]
+  messages    MessageLog[]
+
+  @@map("stores")
+}
+
+model WhatsAppConnection {
+  id              String   @id @default(uuid())
+  storeId         String
+  connectionName  String   // "Vendas", "Suporte", "SAC"
+  phoneNumber     String
+  authState       Json     @default("{}")
+  status          String   @default("disconnected") // connected, disconnected, qr_pending
+  lastQrCode      String?
+  lastConnectedAt DateTime?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  store    Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  messages MessageLog[]
+
+  @@unique([storeId, phoneNumber])
+  @@map("whatsapp_connections")
+}
+
+model MessageLog {
+  id              String   @id @default(uuid())
+  storeId         String
+  connectionId    String
+  externalId      String?  // ID da mensagem no SCOM
+  recipientPhone  String
+  messageType     String   // text, pdf, image
+  content         String?
+  mediaUrl        String?
+  status          String   @default("pending") // pending, processing, sent, failed
+  whatsappId      String?  // ID retornado pelo WhatsApp
+  errorMessage    String?
+  retryCount      Int      @default(0)
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  store      Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  connection WhatsAppConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, status])
+  @@index([connectionId])
+  @@index([externalId])
+  @@map("message_logs")
+}

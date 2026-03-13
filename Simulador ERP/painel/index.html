@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCOM — Simulador de Envio WhatsApp</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0f1117;
+    --bg2:       #161b27;
+    --bg3:       #1e2535;
+    --border:    #2a3347;
+    --border2:   #3a4a64;
+    --green:     #00d084;
+    --green-dim: #00a066;
+    --green-bg:  #00d08414;
+    --amber:     #f5a623;
+    --amber-bg:  #f5a62314;
+    --red:       #ff4d4d;
+    --red-bg:    #ff4d4d14;
+    --blue:      #4d9fff;
+    --blue-bg:   #4d9fff14;
+    --text:      #e2e8f0;
+    --text2:     #8899aa;
+    --text3:     #556070;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+    50%       { opacity: 0.6; box-shadow: 0 0 3px var(--green); }
+  }
+
+  .header-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── Painel esquerdo (formulário) ── */
+  .panel-left {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 28px 24px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* ── Status das sessões ── */
+  .sessions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .session-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .session-card:hover { border-color: var(--border2); }
+  .session-card.active {
+    border-color: var(--green);
+    background: var(--green-bg);
+  }
+
+  .session-info { display: flex; flex-direction: column; gap: 2px; }
+  .session-name { font-weight: 500; font-size: 13px; }
+  .session-id   { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+  .status-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .status-badge.connected    { background: var(--green-bg);  color: var(--green); border: 1px solid var(--green-dim); }
+  .status-badge.disconnected { background: var(--red-bg);    color: var(--red);   border: 1px solid #993333; }
+  .status-badge.pending_qr   { background: var(--amber-bg);  color: var(--amber); border: 1px solid #a06a10; }
+
+  /* ── Formulário ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  .form-group { margin-bottom: 16px; }
+
+  label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 7px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+  input::placeholder, textarea::placeholder { color: var(--text3); }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23556070' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  textarea { resize: vertical; min-height: 80px; font-size: 13px; line-height: 1.5; }
+
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .type-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 9px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .type-btn:hover { border-color: var(--border2); color: var(--text); }
+  .type-btn.active {
+    background: var(--blue-bg);
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
+  .file-area {
+    border: 1px dashed var(--border2);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .file-area:hover { border-color: var(--blue); background: var(--blue-bg); color: var(--blue); }
+  .file-area.has-file { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+
+  .btn-send {
+    width: 100%;
+    background: var(--green);
+    border: none;
+    border-radius: 8px;
+    color: #0a1a10;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 13px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: opacity 0.15s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .btn-send:hover   { opacity: 0.88; }
+  .btn-send:active  { transform: scale(0.98); }
+  .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: border-color 0.15s, color 0.15s;
+    margin-top: 8px;
+  }
+  .btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+
+  /* ── Painel direito (logs) ── */
+  .panel-right {
+    padding: 28px 28px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Métricas ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .metric-value.green  { color: var(--green); }
+  .metric-value.amber  { color: var(--amber); }
+  .metric-value.red    { color: var(--red); }
+  .metric-value.blue   { color: var(--blue); }
+
+  /* ── Log de mensagens ── */
+  .log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .log-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: start;
+    animation: slideIn 0.25s ease-out;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-item.sent       { border-left-color: var(--green); }
+  .log-item.processing { border-left-color: var(--blue); }
+  .log-item.pending    { border-left-color: var(--amber); }
+  .log-item.failed     { border-left-color: var(--red); }
+
+  .log-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .log-icon.sent       { background: var(--green-bg); }
+  .log-icon.processing { background: var(--blue-bg); }
+  .log-icon.pending    { background: var(--amber-bg); }
+  .log-icon.failed     { background: var(--red-bg); }
+
+  .log-body { min-width: 0; }
+  .log-title { font-weight: 500; font-size: 13px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-detail { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+  .log-meta { text-align: right; flex-shrink: 0; }
+  .log-time { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .log-status { font-family: var(--mono); font-size: 10px; font-weight: 600; margin-top: 3px; }
+  .log-status.sent       { color: var(--green); }
+  .log-status.processing { color: var(--blue); }
+  .log-status.pending    { color: var(--amber); }
+  .log-status.failed     { color: var(--red); }
+
+  /* ── SQL snippet ── */
+  .sql-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .sql-box-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sql-box-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .btn-copy {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-copy:hover { border-color: var(--green); color: var(--green); }
+
+  pre {
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text2);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .kw  { color: #bb86fc; }
+  .str { color: var(--green); }
+  .cm  { color: var(--text3); font-style: italic; }
+  .col { color: var(--blue); }
+
+  /* ── QR Placeholder ── */
+  .qr-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .qr-placeholder {
+    width: 160px; height: 160px;
+    margin: 0 auto 16px;
+    background: repeating-conic-gradient(var(--bg3) 0% 25%, var(--border) 0% 50%) 0 0 / 8px 8px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    opacity: 0.4;
+  }
+
+  .qr-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .qr-text strong { color: var(--amber); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text3);
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1000;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--green); color: var(--green); }
+  #toast.error   { border-color: var(--red);   color: var(--red); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    SCOM&nbsp;·&nbsp;WhatsApp&nbsp;Simulador
+  </div>
+  <span class="header-tag">Ambiente de Teste — Desenvolvimento</span>
+</header>
+
+<div class="layout">
+
+  <!-- ═══ PAINEL ESQUERDO ═══ -->
+  <div class="panel-left">
+
+    <!-- Sessões / Lojistas -->
+    <div class="section-label">Lojistas conectados</div>
+    <div class="sessions-grid" id="sessions-grid">
+      <div class="session-card active" data-id="loja_001" onclick="selectTenant(this)">
+        <div class="session-info">
+          <span class="session-name">Loja do João - Centro</span>
+          <span class="session-id">loja_001</span>
+        </div>
+        <span class="status-badge pending_qr">Aguard. QR</span>
+      </div>
+      <div class="session-card" data-id="loja_002" onclick="selectTenant(this)">
+        <div class="session-info">
+          <span class="session-name">Mercadinho da Maria</span>
+          <span class="session-id">loja_002</span>
+        </div>
+        <span class="status-badge pending_qr">Aguard. QR</span>
+      </div>
+      <div class="session-card" data-id="loja_003" onclick="selectTenant(this)">
+        <div class="session-info">
+          <span class="session-name">Eletrônicos Silva & Cia</span>
+          <span class="session-id">loja_003</span>
+        </div>
+        <span class="status-badge pending_qr">Aguard. QR</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Tipo de envio -->
+    <div class="section-label">Tipo de envio</div>
+    <div class="form-group">
+      <div class="type-grid">
+        <div class="type-btn active" onclick="setType('text', this)">TEXTO</div>
+        <div class="type-btn" onclick="setType('pdf', this)">PDF</div>
+        <div class="type-btn" onclick="setType('image', this)">IMAGEM</div>
+      </div>
+    </div>
+
+    <!-- Número destinatário -->
+    <div class="form-group">
+      <label>Número do cliente (com DDI+DDD)</label>
+      <input type="text" id="recipient" placeholder="5511999887766" maxlength="15">
+    </div>
+
+    <!-- Mensagem -->
+    <div class="form-group">
+      <label>Mensagem</label>
+      <textarea id="message" placeholder="Digite a mensagem que será enviada ao cliente...">Olá! Seu orçamento nº 1234 foi aprovado. Pode passar na loja para retirar. Obrigado pela preferência!</textarea>
+    </div>
+
+    <!-- Área de arquivo (aparece só para pdf/image) -->
+    <div class="form-group" id="file-group" style="display:none">
+      <label>Arquivo</label>
+      <div class="file-area" id="file-area" onclick="document.getElementById('file-input').click()">
+        <div>📎 Clique para selecionar o arquivo</div>
+        <div style="margin-top:4px;font-size:11px">PDF até 25 MB</div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,.jpg,.png" style="display:none" onchange="onFileSelect(this)">
+      <div class="form-group" style="margin-top:8px;margin-bottom:0">
+        <label>Nome do arquivo (como aparecerá no WhatsApp)</label>
+        <input type="text" id="file-name" placeholder="Orcamento_1234.pdf">
+      </div>
+    </div>
+
+    <button class="btn-send" id="btn-send" onclick="sendMessage()">
+      ▶ &nbsp;Simular Envio do SCOM
+    </button>
+    <button class="btn-secondary" onclick="sendBatch()">
+      Enviar 3 mensagens de teste em sequência
+    </button>
+
+  </div>
+
+  <!-- ═══ PAINEL DIREITO ═══ -->
+  <div class="panel-right">
+
+    <!-- Métricas -->
+    <div>
+      <div class="section-label" style="margin-bottom:12px">Métricas da sessão</div>
+      <div class="metrics">
+        <div class="metric-card">
+          <div class="metric-label">Enviadas</div>
+          <div class="metric-value green" id="m-sent">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Na fila</div>
+          <div class="metric-value blue" id="m-queued">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Falhas</div>
+          <div class="metric-value red" id="m-failed">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total</div>
+          <div class="metric-value amber" id="m-total">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Code info -->
+    <div class="qr-box">
+      <div class="section-label" style="text-align:left;margin-bottom:16px">QR Code — Conexão do lojista</div>
+      <div style="display:flex;gap:24px;align-items:flex-start">
+        <div class="qr-placeholder">📱</div>
+        <div class="qr-text">
+          Quando o serviço Node.js estiver rodando, o QR Code aparecerá aqui via WebSocket.<br><br>
+          O lojista escaneia <strong>uma única vez</strong> — a sessão fica salva no PostgreSQL e reconecta automaticamente após reinicializações.<br><br>
+          <span style="color:var(--text3);font-size:12px">Este painel se conectará em: <code style="color:var(--blue)">ws://localhost:3001/qr</code></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log de mensagens -->
+    <div>
+      <div class="log-header">
+        <div class="section-label" style="margin-bottom:0">Log de mensagens simuladas</div>
+        <button class="btn-clear" onclick="clearLog()">Limpar</button>
+      </div>
+      <div style="margin-top:12px">
+        <div id="log-list" class="log-list">
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>Nenhuma mensagem simulada ainda.<br>Preencha o formulário e clique em <strong style="color:var(--green)">Simular Envio</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SQL gerado -->
+    <div class="sql-box" id="sql-box" style="display:none">
+      <div class="sql-box-header">
+        <span class="sql-box-title">SQL equivalente — o que o SCOM executa no banco</span>
+        <button class="btn-copy" onclick="copySql()">Copiar</button>
+      </div>
+      <pre id="sql-output"></pre>
+    </div>
+
+    <!-- Links úteis -->
+    <div>
+      <div class="section-label" style="margin-bottom:12px">Ferramentas do ambiente</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        <a href="http://localhost:8080" target="_blank" style="text-decoration:none">
+          <div class="metric-card" style="cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="metric-label">Adminer (PostgreSQL)</div>
+            <div style="color:var(--blue);font-family:var(--mono);font-size:13px;margin-top:6px">localhost:8080 →</div>
+          </div>
+        </a>
+        <a href="http://localhost:8081" target="_blank" style="text-decoration:none">
+          <div class="metric-card" style="cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--amber)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="metric-label">Redis Commander (Filas)</div>
+            <div style="color:var(--amber);font-family:var(--mono);font-size:13px;margin-top:6px">localhost:8081 →</div>
+          </div>
+        </a>
+        <a href="http://localhost:3001/admin/queues" target="_blank" style="text-decoration:none">
+          <div class="metric-card" style="cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="metric-label">Bull Board (Jobs)</div>
+            <div style="color:var(--green);font-family:var(--mono);font-size:13px;margin-top:6px">localhost:3001 →</div>
+          </div>
+        </a>
+        <a href="http://localhost:3001/health" target="_blank" style="text-decoration:none">
+          <div class="metric-card" style="cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div class="metric-label">Health Check API</div>
+            <div style="color:var(--green);font-family:var(--mono);font-size:13px;margin-top:6px">localhost:3001 →</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── Estado ──────────────────────────────────────────────────
+  let currentTenant = 'loja_001';
+  let currentType   = 'text';
+  let selectedFile  = null;
+  let logs = [];
+  let metrics = { sent: 0, queued: 0, failed: 0, total: 0 };
+
+  const tenants = {
+    loja_001: 'Loja do João - Centro',
+    loja_002: 'Mercadinho da Maria',
+    loja_003: 'Eletrônicos Silva & Cia',
+  };
+
+  // ── Seleção de lojista ───────────────────────────────────────
+  function selectTenant(el) {
+    document.querySelectorAll('.session-card').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    currentTenant = el.dataset.id;
+  }
+
+  // ── Tipo de mensagem ─────────────────────────────────────────
+  function setType(type, el) {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    currentType = type;
+    document.getElementById('file-group').style.display = type !== 'text' ? 'block' : 'none';
+  }
+
+  // ── Seleção de arquivo ───────────────────────────────────────
+  function onFileSelect(input) {
+    if (input.files.length > 0) {
+      selectedFile = input.files[0];
+      const area = document.getElementById('file-area');
+      area.classList.add('has-file');
+      area.innerHTML = `<div>✅ ${selectedFile.name}</div><div style="margin-top:4px;font-size:11px">${(selectedFile.size/1024/1024).toFixed(2)} MB</div>`;
+      if (!document.getElementById('file-name').value) {
+        document.getElementById('file-name').value = selectedFile.name;
+      }
+    }
+  }
+
+  // ── Envio simulado ───────────────────────────────────────────
+  function sendMessage() {
+    const recipient = document.getElementById('recipient').value.trim().replace(/\D/g, '');
+    const message   = document.getElementById('message').value.trim();
+    const fileName  = document.getElementById('file-name').value.trim();
+
+    if (!recipient || recipient.length < 10) {
+      showToast('Informe um número válido (com DDI+DDD)', 'error');
+      return;
+    }
+    if (!message) {
+      showToast('Informe a mensagem', 'error');
+      return;
+    }
+
+    const id = 'msg_' + Date.now();
+    const now = new Date();
+
+    // Adiciona como 'queued'
+    addLog({
+      id, recipient, message, fileName,
+      tenant: currentTenant,
+      tenantName: tenants[currentTenant],
+      type: currentType,
+      status: 'pending',
+      time: formatTime(now),
+    });
+
+    metrics.queued++;
+    metrics.total++;
+    updateMetrics();
+    updateSql(recipient, message, fileName);
+
+    showToast('Inserido na fila — aguardando processamento', 'success');
+
+    // Simula processamento após 1.5s
+    setTimeout(() => updateLogStatus(id, 'processing'), 1500);
+
+    // Simula envio após 3s (90% sucesso, 10% erro)
+    setTimeout(() => {
+      const ok = Math.random() > 0.1;
+      updateLogStatus(id, ok ? 'sent' : 'failed');
+      metrics.queued = Math.max(0, metrics.queued - 1);
+      if (ok) metrics.sent++;
+      else    metrics.failed++;
+      updateMetrics();
+      showToast(ok ? '✅ Mensagem enviada com sucesso!' : '❌ Falha no envio — retry agendado', ok ? 'success' : 'error');
+    }, 3000);
+  }
+
+  // ── Envio em lote ────────────────────────────────────────────
+  function sendBatch() {
+    const msgs = [
+      { recipient: '5511999887766', message: 'Olá João! Seu orçamento nº 1001 foi aprovado.' },
+      { recipient: '5511888776655', message: 'Olá Maria! Sua nota fiscal NF-002 foi emitida.' },
+      { recipient: '5511777665544', message: 'Olá Carlos! Sua proposta comercial foi enviada.' },
+    ];
+    msgs.forEach((m, i) => {
+      setTimeout(() => {
+        document.getElementById('recipient').value = m.recipient;
+        document.getElementById('message').value   = m.message;
+        sendMessage();
+      }, i * 600);
+    });
+  }
+
+  // ── Log ──────────────────────────────────────────────────────
+  function addLog(item) {
+    logs.unshift(item);
+    renderLogs();
+  }
+
+  function updateLogStatus(id, status) {
+    const item = logs.find(l => l.id === id);
+    if (item) { item.status = status; renderLogs(); }
+  }
+
+  function renderLogs() {
+    const el = document.getElementById('log-list');
+    if (logs.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhuma mensagem simulada ainda.<br>Preencha o formulário e clique em <strong style="color:var(--green)">Simular Envio</strong>.</p></div>`;
+      return;
+    }
+    el.innerHTML = logs.map(l => {
+      const icons = { sent: '✅', processing: '⏳', pending: '🕐', failed: '❌' };
+      const labels = { sent: 'ENVIADA', processing: 'PROCESSANDO', pending: 'NA FILA', failed: 'FALHA' };
+      const typeLabel = { text: '💬 Texto', pdf: '📄 PDF', image: '🖼 Imagem' };
+      return `
+        <div class="log-item ${l.status}">
+          <div class="log-icon ${l.status}">${icons[l.status]}</div>
+          <div class="log-body">
+            <div class="log-title">${l.tenantName} → +${l.recipient}</div>
+            <div class="log-detail">${typeLabel[l.type]}${l.fileName ? ' · ' + l.fileName : ''} · ${l.message.substring(0, 60)}${l.message.length > 60 ? '…' : ''}</div>
+          </div>
+          <div class="log-meta">
+            <div class="log-time">${l.time}</div>
+            <div class="log-status ${l.status}">${labels[l.status]}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function clearLog() {
+    logs = [];
+    metrics = { sent: 0, queued: 0, failed: 0, total: 0 };
+    updateMetrics();
+    renderLogs();
+    document.getElementById('sql-box').style.display = 'none';
+  }
+
+  // ── Métricas ─────────────────────────────────────────────────
+  function updateMetrics() {
+    document.getElementById('m-sent').textContent   = metrics.sent;
+    document.getElementById('m-queued').textContent = metrics.queued;
+    document.getElementById('m-failed').textContent = metrics.failed;
+    document.getElementById('m-total').textContent  = metrics.total;
+  }
+
+  // ── SQL ──────────────────────────────────────────────────────
+  function updateSql(recipient, message, fileName) {
+    const box = document.getElementById('sql-box');
+    const pre = document.getElementById('sql-output');
+    box.style.display = 'block';
+
+    const msgEsc  = message.replace(/'/g, "''");
+    const fileCol = currentType !== 'text' && fileName
+      ? `,\n  <span class="col">file_name</span>`
+      : '';
+    const fileVal = currentType !== 'text' && fileName
+      ? `,\n  <span class="str">'${fileName}'</span>`
+      : '';
+
+    pre.innerHTML = `<span class="cm">-- Inserido pelo SCOM no banco PostgreSQL:</span>
+<span class="kw">INSERT INTO</span> whatsapp_queue (
+  <span class="col">tenant_id</span>,
+  <span class="col">recipient</span>,
+  <span class="col">message_type</span>,
+  <span class="col">message_text</span>${fileCol}
+)
+<span class="kw">VALUES</span> (
+  <span class="str">'${currentTenant}'</span>,
+  <span class="str">'${recipient}'</span>,
+  <span class="str">'${currentType}'</span>,
+  <span class="str">'${msgEsc.substring(0, 80)}${msgEsc.length > 80 ? '…' : ''}'</span>${fileVal}
+);`;
+  }
+
+  function copySql() {
+    const text = document.getElementById('sql-output').textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('SQL copiado!', 'success'));
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = `show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+  }
+
+  function formatTime(d) {
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+</script>
+</body>
+</html>

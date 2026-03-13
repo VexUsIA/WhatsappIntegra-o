@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+
+  # ─── PostgreSQL ────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: scom_wpp_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scom_user
+      POSTGRES_PASSWORD: scom_pass
+      POSTGRES_DB: scom_wpp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../sql/01_init.sql:/docker-entrypoint-initdb.d/01_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scom_user -d scom_wpp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: scom_wpp_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ─── Redis Commander (UI visual do Redis) ──────────────────────
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: scom_wpp_redis_ui
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: "local:redis:6379"
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ─── Adminer (UI visual do PostgreSQL) ─────────────────────────
+  adminer:
+    image: adminer:latest
+    container_name: scom_wpp_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
