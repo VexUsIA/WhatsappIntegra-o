@@ -7,63 +7,45 @@
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/seu-usuario/scom-whatsapp-integration.git"
-  },
-  "bugs": {
-    "url": "https://github.com/seu-usuario/scom-whatsapp-integration/issues"
-  },
-  "homepage": "https://github.com/seu-usuario/scom-whatsapp-integration#readme",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "npx tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "create:store": "tsx scripts/createStore.ts"
+    "create:store": "npx tsx scripts/createStore.ts"
   },
-  "keywords": [
-    "whatsapp",
-    "erp",
-    "scom",
-    "baileys",
-    "integration",
-    "multi-tenant",
-    "nodejs",
-    "typescript"
-  ],
-  "author": "Seu Nome",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.0",
     "@fastify/static": "^7.0.0",
-    "fastify": "^4.28.0",
-    "bullmq": "^5.12.0",
-    "ioredis": "^5.3.2",
     "@prisma/client": "^5.14.0",
-    "winston": "^3.13.0",
+    "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "baileys": "github:WhiskeySockets/Baileys#master",
+    "bcrypt": "^5.1.1",
+    "bullmq": "^5.12.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.0",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "p-queue": "^8.0.1",
+    "pg": "^8.12.0",
     "pino": "^9.3.2",
-    "zod": "^3.23.0",
     "qrcode": "^1.5.3",
     "qrcode-terminal": "^0.12.0",
-    "pg": "^8.12.0",
-    "dotenv": "^16.4.5",
-    "p-queue": "^8.0.1",
-    "jsonwebtoken": "^9.0.2",
-    "bcrypt": "^5.1.1"
+    "winston": "^3.13.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
-    "prisma": "^5.14.0",
-    "@types/node": "^20.14.0",
-    "@types/qrcode": "^1.5.5",
-    "@types/jsonwebtoken": "^9.0.6",
     "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.14.0",
     "@types/pg": "^8.11.0",
+    "@types/qrcode": "^1.5.5",
+    "prisma": "^5.14.0",
     "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
     "vitest": "^1.6.0"
   }
 }

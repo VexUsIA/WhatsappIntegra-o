@@ -232,6 +232,32 @@ export async function registerPanelRoutes(
     }
   );
 
+  // Excluir uma conexão
+  fastify.delete(
+    '/api/panel/connections/:connectionId',
+    { preHandler: authMiddleware },
+    async (request, reply) => {
+      const user = (request as any).user as JWTPayload;
+      const { connectionId } = request.params as { connectionId: string };
+
+      const connection = await prisma.whatsAppConnection.findFirst({
+        where: { id: connectionId, storeId: user.storeId },
+      });
+
+      if (!connection) {
+        reply.status(404).send({ error: 'Conexão não encontrada' });
+        return;
+      }
+
+      // Encerra sessão ativa sem reconectar
+      await sessionManager.deleteConnection(connectionId);
+
+      await prisma.whatsAppConnection.delete({ where: { id: connectionId } });
+
+      return { success: true };
+    }
+  );
+
   // Histórico de mensagens da loja
   fastify.get(
     '/api/panel/messages',

@@ -66,7 +66,7 @@ export class DatabasePoller {
             await this.processRecord(record);
 
             await client.query(
-              'UPDATE whatsapp_queue SET status = $1, updated_at = NOW() WHERE id = $2',
+              'UPDATE whatsapp_queue SET status = $1, processed_at = NOW() WHERE id = $2',
               ['processing', record.id]
             );
           }

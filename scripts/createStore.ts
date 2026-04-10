@@ -1,36 +1,33 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import * as readline from 'readline';
 
 const prisma = new PrismaClient();
 
-async function createStore() {
-  const email = 'admin@loja01.com';
-  const password = 'senha123';
-  const hashedPassword = await bcrypt.hash(password, 10);
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+const ask = (q: string) => new Promise<string>(resolve => rl.question(q, resolve));
 
-  // Usar o mesmo ID do simulador para compatibilidade
+async function createStore() {
+  console.log('\n=== Criar Nova Loja ===\n');
+
+  const id         = await ask('ID da loja (ex: loja_001): ');
+  const storeCode  = await ask('Codigo (ex: LOJA01): ');
+  const storeName  = await ask('Nome da loja: ');
+  const email      = await ask('Email de acesso: ');
+  const password   = await ask('Senha: ');
+
+  rl.close();
+
+  const hashed = await bcrypt.hash(password, 10);
+
   const store = await prisma.store.create({
-    data: {
-      id: 'loja_001', // Mesmo tenant_id do simulador
-      storeCode: 'LOJA01',
-      storeName: 'Loja do João - Centro',
-      email,
-      password: hashedPassword,
-      isActive: true,
-    },
+    data: { id, storeCode, storeName, email, password: hashed, isActive: true },
   });
 
-  console.log('✅ Loja criada com sucesso!');
-  console.log('ID:', store.id);
-  console.log('Email:', email);
-  console.log('Senha:', password);
-  console.log('');
-  console.log('Agora crie uma conexão WhatsApp:');
-  console.log('Acesse http://localhost:3000 e faça login');
-  console.log('Ou execute no Adminer (http://localhost:8080):');
-  console.log('');
-  console.log(`INSERT INTO whatsapp_connections (id, store_id, connection_name, phone_number, is_active)`);
-  console.log(`VALUES (gen_random_uuid(), 'loja_001', 'Vendas', '5511999999999', true);`);
+  console.log('\nLoja criada com sucesso!');
+  console.log(`ID:    ${store.id}`);
+  console.log(`Email: ${store.email}`);
+  console.log(`Acesse http://localhost:3000 para fazer login.\n`);
 }
 
 createStore()
